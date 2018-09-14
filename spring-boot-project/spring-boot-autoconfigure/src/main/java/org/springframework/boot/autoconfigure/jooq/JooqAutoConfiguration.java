@@ -93,23 +93,23 @@ public class JooqAutoConfiguration {
 
 		private final DataSource dataSource;
 
-		private final TransactionProvider transactionProvider;
+		private final ObjectProvider<TransactionProvider> transactionProvider;
 
-		private final RecordMapperProvider recordMapperProvider;
+		private final ObjectProvider<RecordMapperProvider> recordMapperProvider;
 
-		private final RecordUnmapperProvider recordUnmapperProvider;
+		private final ObjectProvider<RecordUnmapperProvider> recordUnmapperProvider;
 
-		private final Settings settings;
+		private final ObjectProvider<Settings> settings;
 
-		private final RecordListenerProvider[] recordListenerProviders;
+		private final ObjectProvider<RecordListenerProvider[]> recordListenerProviders;
 
 		private final ExecuteListenerProvider[] executeListenerProviders;
 
-		private final VisitListenerProvider[] visitListenerProviders;
+		private final ObjectProvider<VisitListenerProvider[]> visitListenerProviders;
 
-		private final TransactionListenerProvider[] transactionListenerProviders;
+		private final ObjectProvider<TransactionListenerProvider[]> transactionListenerProviders;
 
-		private final ExecutorProvider executorProvider;
+		private final ObjectProvider<ExecutorProvider> executorProvider;
 
 		public DslContextConfiguration(JooqProperties properties,
 				ConnectionProvider connectionProvider, DataSource dataSource,
@@ -125,16 +125,15 @@ public class JooqAutoConfiguration {
 			this.properties = properties;
 			this.connection = connectionProvider;
 			this.dataSource = dataSource;
-			this.transactionProvider = transactionProvider.getIfAvailable();
-			this.recordMapperProvider = recordMapperProvider.getIfAvailable();
-			this.recordUnmapperProvider = recordUnmapperProvider.getIfAvailable();
-			this.settings = settings.getIfAvailable();
-			this.recordListenerProviders = recordListenerProviders.getIfAvailable();
 			this.executeListenerProviders = executeListenerProviders;
-			this.visitListenerProviders = visitListenerProviders.getIfAvailable();
-			this.transactionListenerProviders = transactionListenerProviders
-					.getIfAvailable();
-			this.executorProvider = executorProvider.getIfAvailable();
+			this.transactionProvider = transactionProvider;
+			this.recordMapperProvider = recordMapperProvider;
+			this.recordUnmapperProvider = recordUnmapperProvider;
+			this.settings = settings;
+			this.recordListenerProviders = recordListenerProviders;
+			this.visitListenerProviders = visitListenerProviders;
+			this.transactionListenerProviders = transactionListenerProviders;
+			this.executorProvider = executorProvider;
 		}
 
 		@Bean
@@ -145,29 +144,22 @@ public class JooqAutoConfiguration {
 		@Bean
 		@ConditionalOnMissingBean(org.jooq.Configuration.class)
 		public DefaultConfiguration jooqConfiguration() {
+
 			DefaultConfiguration configuration = new DefaultConfiguration();
-			configuration.set(this.properties.determineSqlDialect(this.dataSource));
-			configuration.set(this.connection);
-			if (this.transactionProvider != null) {
-				configuration.set(this.transactionProvider);
-			}
-			if (this.recordMapperProvider != null) {
-				configuration.set(this.recordMapperProvider);
-			}
-			if (this.recordUnmapperProvider != null) {
-				configuration.set(this.recordUnmapperProvider);
-			}
-			if (this.settings != null) {
-				configuration.set(this.settings);
-			}
-			if (this.executorProvider != null) {
-				configuration.set(this.executorProvider);
-			}
-			configuration.set(this.recordListenerProviders);
-			configuration.set(this.executeListenerProviders);
-			configuration.set(this.visitListenerProviders);
-			configuration
-					.setTransactionListenerProvider(this.transactionListenerProviders);
+
+			configuration.set(properties.determineSqlDialect(dataSource));
+			configuration.set(connection);
+			configuration.set(executeListenerProviders);
+
+			transactionProvider.ifAvailable(configuration::set);
+			recordMapperProvider.ifAvailable(configuration::set);
+			recordUnmapperProvider.ifAvailable(configuration::set);
+			settings.ifAvailable(configuration::set);
+			recordListenerProviders.ifAvailable(configuration::set);
+			visitListenerProviders.ifAvailable(configuration::set);
+			transactionListenerProviders.ifAvailable(configuration::setTransactionListenerProvider);
+			executorProvider.ifAvailable(configuration::set);
+
 			return configuration;
 		}
 
